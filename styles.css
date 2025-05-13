@@ -29,7 +29,7 @@ body {
 .input {
     padding: 10px;
     font-size: 16px;
-    width: 80%;
+    width: 85%;
     border: 1px solid #ccc;
     border-radius: 5px;
 }
@@ -37,8 +37,15 @@ body {
 .button {
     border: 1px solid #ccc;
     border-radius: 5px;
+    padding: 10px 2px;
 }
 
 .button:hover {
     background-color: #ffffff;
+}
+
+#passwordMismatch {
+    margin: 0;
+    color: red;
+    display: none"
 }

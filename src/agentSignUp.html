@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ko">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Agent SignUp</title>
+        <link rel="stylesheet" href="/styles.css" />
+    </head>
+    <body>
+        <div id="box">
+            <input type="text" placeholder="id" class="input" id="loginId" />
+            <input
+                type="password"
+                placeholder="비밀번호"
+                class="input"
+                id="password"
+            />
+            <input
+                type="password"
+                placeholder="비밀번호 확인"
+                class="input"
+                id="passwordConfirm"
+            />
+            <p id="passwordMismatch">비밀번호가 일치하지 않습니다.</p>
+            <input type="text" placeholder="이름" class="input" id="name" />
+            <input type="text" placeholder="소속" class="input" id="corp" />
+
+            <button id="signupBtn" class="button" disabled>회원가입</button>
+
+            <a href="">로그인</a>
+        </div>
+
+        <script>
+            const loginIdInput = document.getElementById("loginId");
+            const passwordInput = document.getElementById("password");
+            const confirmInput = document.getElementById("passwordConfirm");
+            const mismatchMsg = document.getElementById("passwordMismatch");
+            const nameInput = document.getElementById("name");
+            const corpInput = document.getElementById("corp");
+            const signupBtn = document.getElementById("signupBtn");
+
+            //입력값 공백 검사
+            const validateForm = () => {
+                const id = loginIdInput.value.trim();
+                const password = passwordInput.value.trim();
+                const confirm = confirmInput.value.trim();
+                const name = nameInput.value.trim();
+                const corp = corpInput.value.trim();
+
+                // 비어있는 항목이 있는지 확인
+                const allFilled = id && password && confirm && name && corp;
+
+                // 비밀번호 일치 여부 확인
+                const passwordMatch = password === confirm;
+
+                // 불일치 메시지 표시
+                mismatchMsg.style.display = passwordMatch ? "none" : "block";
+
+                // 모든 조건 만족할 때만 버튼 활성화
+                signupBtn.disabled = !(allFilled && passwordMatch);
+            };
+
+            //회원가입 요청 함수
+            const signUp = async () => {
+                const id = loginIdInput.value.trim();
+                const password = passwordInput.value.trim();
+                const confirm = confirmInput.value.trim();
+                const name = nameInput.value.trim();
+                const corp = corpInput.value.trim();
+
+                if (password !== confirm) {
+                    alert("비밀번호가 일치하지 않습니다.");
+                    return;
+                }
+
+                try {
+                    const res = await fetch("/agentsignup", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({ id, password, name, corp }),
+                    });
+
+                    const result = await res.json();
+
+                    if (res.ok) {
+                        alert("회원가입 성공");
+                    } else {
+                        alert("회원가입 실패: " + result.message);
+                    }
+                } catch (err) {
+                    console.error("에러 발생:", err);
+                    alert("서버 오류");
+                }
+            };
+
+            // 모든 입력 필드에 이벤트 연결
+            [
+                loginIdInput,
+                passwordInput,
+                confirmInput,
+                nameInput,
+                corpInput,
+            ].forEach((el) => el.addEventListener("input", validateForm));
+
+            //회원가입 버튼 클릭 이벤트
+            document
+                .getElementById("signupBtn")
+                .addEventListener("click", signUp);
+
+            //엔터키 입력 이벤트
+            document.getElementById("corp").addEventListener("keydown", (e) => {
+                if (e.key === "Enter" && signupBtn.disabled === false) {
+                    signUp();
+                }
+            });
+
+            // 초기 상태도 확인
+            validateForm();
+        </script>
+    </body>
+</html>
