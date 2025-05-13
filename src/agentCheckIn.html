@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ko">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Agent QR CheckIn</title>
+        <link rel="stylesheet" href="/styles.css" />
+        <!-- 경로 설정 확인 -->
+        <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+        <!-- cdn 패키징 고려 -->
+    </head>
+    <body>
+        <div id="cameraBox">
+            <video
+                id="camera"
+                autoplay
+                playsinline
+                width="400"
+                height="300"
+            ></video>
+            <canvas id="canvas" hidden></canvas>
+            <div id="buttonBox">
+                <button class="camButton" id="startBtn">On</button>
+                <button class="camButton" id="stopBtn">Off</button>
+            </div>
+            <p id="result">QR 인식 결과 없음</p>
+        </div>
+        <script>
+            const video = document.getElementById("camera");
+            const canvas = document.getElementById("canvas");
+            const ctx = canvas.getContext("2d");
+            const resultBox = document.getElementById("result");
+            const startBtn = document.getElementById("startBtn");
+            const stopBtn = document.getElementById("stopBtn");
+
+            let stream;
+            let scanInterval;
+
+            const stopScanning = () => {
+                if (stream) {
+                    stream.getTracks().forEach((track) => track.stop());
+                    video.srcObject = null;
+                }
+                clearInterval(scanInterval);
+            };
+
+            const sendDataToServer = (qrData) => {
+                fetch("/agentcheckin", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ qrCode: qrData }),
+                })
+                    .then((response) => response.json())
+                    .then((data) => {
+                        console.log("서버 응답:", data);
+                    })
+                    .catch((error) => {
+                        console.error("서버로 전송 중 오류 발생:", error);
+                    });
+            };
+
+            // startBtn을 클릭하면 카메라가 켜지고 QR 코드 인식 시작
+            startBtn.addEventListener("click", async () => {
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: "environment" },
+                    });
+                    video.srcObject = stream;
+
+                    //0.3초마다 캡처 및 QR 인식
+                    scanInterval = setInterval(() => {
+                        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                            // 비디오 화면을 캔버스에 그리기
+                            canvas.width = video.videoWidth;
+                            canvas.height = video.videoHeight;
+                            ctx.drawImage(
+                                video,
+                                0,
+                                0,
+                                canvas.width,
+                                canvas.height
+                            );
+
+                            //캔버스에서 QR 코드 읽기
+                            const imageData = ctx.getImageData(
+                                0,
+                                0,
+                                canvas.width,
+                                canvas.height
+                            );
+                            const code = jsQR(
+                                imageData.data,
+                                canvas.width,
+                                canvas.height
+                            );
+
+                            if (code) {
+                                resultBox.innerText = "QR 인식 성공";
+                                sendDataToServer(code.data);
+                                stopScanning();
+                            } else {
+                                resultBox.innerText = "QR 결과 없음";
+                            }
+                        }
+                    }, 300); // 0.3초마다 스캔
+                    // setTimeout 재귀적 인터벌과 setInterval 비교 공부
+                } catch (err) {
+                    alert("카메라 접근 실패");
+                    console.error(err);
+                }
+            });
+
+            // stopBtn을 누르면 카메라 끄기
+            stopBtn.addEventListener("click", () => {
+                stopScanning();
+            });
+        </script>
+    </body>
+</html>
